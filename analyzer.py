@@ -16,55 +16,55 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 class Analyzer():
     def __init__(self):
-        with open("dataset.txt", "r") as data:  # otevreni datove sady
-            self.dataset = data.readlines()
-        self.X = None  # inicializace struktur pro datovou sadu
-        self.y = np.array(40 * [1]) # 20 pozitivnich a 20 negativnich review
-        self.y[20:] = [0] * 20  # 1 = pozitivni, 0 - negativni
+        with open("dataset.txt", "r") as data:  # open the data-set for reading
+            self.dataset = data.readlines() 
+        self.X = None  # init the data structures
+        self.y = np.array(40 * [1]) # 20 positive and 20 negative lines
+        self.y[20:] = [0] * 20  # 1 = positive, 0 - negative
 
     def lemmatize(self, text):
         stemmer = WordNetLemmatizer()
-        sentence = re.sub(r'\s+[a-zA-Z]\s+', ' ', text)  # odstraneni spojek a predlozek
-        sentence = re.sub(r'\W', ' ', sentence)  # odstraneni specialnich znaku
-        sentence = sentence.lower().split()  # prevedeni na mala pismena a rozdeleni na slova
-        sentence = [stemmer.lemmatize(word) for word in sentence] # lematizuje slova ve vete
-        sentence = ' '.join(sentence) # a vrati je do vetne podoby
+        sentence = re.sub(r'\s+[a-zA-Z]\s+', ' ', text)  # remove single letter words
+        sentence = re.sub(r'\W', ' ', sentence)  # remove special chars
+        sentence = sentence.lower().split()  # convert to lowercase and split to words
+        sentence = [stemmer.lemmatize(word) for word in sentence]
+        sentence = ' '.join(sentence) # back into a space delimited sentence of words
         return sentence
 
     def process_sentences(self):
         arr = []
         for sentence in self.dataset:
-            arr.append(self.lemmatize(sentence))  # lematizuje kazdou vetu v datasetu
+            arr.append(self.lemmatize(sentence))  # lemmatize every data-set sentence
 
-        vectorizer = CountVectorizer(max_features=20, # vzit prvnich TOP 20 slov
-                                     min_df=2,        # minimalne dva vyskyty v review
-                                     max_df=0.6,      # max v 60% review
+        vectorizer = CountVectorizer(max_features=20, # take only TOP 20 words
+                                     min_df=2,        # at least 2 occurences
+                                     max_df=0.6,      # at most in 60% of the text
                                      stop_words=stopwords.words('english'))
         tfidf_transformer = TfidfTransformer()
-        self.X = vectorizer.fit_transform(arr).toarray()  # vektorizuje slova
+        self.X = vectorizer.fit_transform(arr).toarray()  # vectorize 
         print(self.X)
-        self.X = tfidf_transformer.fit_transform(self.X).toarray()  # zvazi frekvenci slov v celem dokumentu
+        self.X = tfidf_transformer.fit_transform(self.X).toarray()  # frequency analysis
 
 
     def train(self):
-        # rozdelime dataset na trenovaci a testovaci podmnozinu
+        # split the data-set to training and testing set
         X_train, X_test, y_train, y_test = \
-            train_test_split(self.X, # hodnoceni
-                             self.y, # jejich trida (0-neg,1-pos)
-                             test_size=0.3, # 30% je testovacich
+            train_test_split(self.X, # values, reviews
+                             self.y, # class (0-neg,1-pos)
+                             test_size=0.3, # 30% for testing
                              random_state=9)
 
-        # pouzijeme zakladni klasifikator K-NN
+        # basic K-nearest neighbors classifier
         classifier = KNeighborsClassifier(n_neighbors=5)
-        classifier.fit(X_train, y_train) # natrenovani klasifikatoru
+        classifier.fit(X_train, y_train) # classifier training
 
-        # predikce
+        # prediction
         y_pred = classifier.predict(X_test)
-        print(confusion_matrix(y_test, y_pred)) # tisk matice zamen
-        print(classification_report(y_test, y_pred)) # vystup klasifikace
-        print(accuracy_score(y_test, y_pred)) # presnost modelu
+        print(confusion_matrix(y_test, y_pred)) # print report
+        print(classification_report(y_test, y_pred)) 
+        print(accuracy_score(y_test, y_pred)) 
 
-    def sentiment_analysis(self):
+    def sentiment_analysis(self): # loads a sentence to VADER
         analyser = SentimentIntensityAnalyzer()
         snt = analyser.polarity_scores(self.dataset[1])
         print("{:-<40} {}".format(self.dataset[1], str(snt)))
